@@ -1,0 +1,97 @@
+// Walkie Talkie Carabiner Attachment Arch
+// This arch attaches to a walkie talkie via two studs and provides
+// a permanent carabiner attachment point.
+
+// ============================================
+// DIMENSIONS
+// ============================================
+
+// Basic pill shape dimensions
+attachment_length = 46.5;    // Length of the walkie talkie attachment
+attachment_width = 11.5;     // Width of the walkie talkie attachment
+attachment_height = 7;       // Height/tall dimension (Z direction)
+rounding_diameter = attachment_width; // Diameter of the rounding (matches width)
+
+// Screw hole dimensions
+stud_hole_diameter = 5.5;       // Bottom hole for stud (5mm wide)
+stud_hole_depth = 1.6;        // Depth of stud hole (1.6mm)
+screw_shaft_diameter = 2;     // Screw shaft diameter (2mm)
+screw_head_diameter = 5.5;    // Screw head diameter (5.5mm)
+screw_head_start = 2.5;         // Height where screw head starts (4mm from bottom)
+
+// Arch cutout dimensions
+arch_cutout_width = 15;   // Width of the arch cutout (Y direction)
+arch_cutout_depth = 4;   // Depth of the arch cutout (Z direction, from bottom)
+
+// Keying slot dimensions
+keying_slot_y = 1.5;    // Width of the keying slot (Y direction, perpendicular to line)
+keying_slot_z = 2.5;    // Depth of the keying slot (Z direction)
+keying_slot_x = 3.5;  // Distance extending from cutout edge (X direction)
+
+// Quality settings
+$fn = 64;  // Number of fragments for circles/cylinders (higher = smoother, slower to render)
+
+
+// ============================================
+// MAIN ARCH MODEL
+// ============================================
+// Coordinate system:
+// X: along the length (left to right)
+// Y: width (front to back)
+// Z: height/tall (upward)
+
+// Create a pill shape: rectangle with rounded ends
+// The rounding is along the "tall" axis (Z), creating semicircular ends
+// The rounding diameter (12.5mm) matches the width, creating rounded edges along the length
+difference() {
+    hull() {
+        // Left rounded end - semicircle in X-Z plane
+        translate([-attachment_length/2 + rounding_diameter/2, 0, 0])
+            cylinder(h=attachment_height, d=rounding_diameter);
+        
+        // Right rounded end - semicircle in X-Z plane
+        translate([attachment_length/2 - rounding_diameter/2, 0, 0])
+            cylinder(h=attachment_height, d=rounding_diameter);
+        
+        // Raised center above the arch (middle gets taller, sides stay same)
+        translate([0, 0, attachment_height + arch_extra_height/2])
+            cube([arch_cutout_width, attachment_width, arch_extra_height], center=true);
+    }
+    
+    // Left side screw hole
+    translate([-attachment_length/2 + rounding_diameter/2, 0, 0]) {
+        // Bottom stud hole (5mm diameter, 1.6mm deep)
+        cylinder(h=stud_hole_depth, d=stud_hole_diameter);
+        
+        // Screw shaft (2mm diameter, from 1.6mm to 4mm)
+        translate([0, 0, stud_hole_depth])
+            cylinder(h=screw_head_start - stud_hole_depth, d=screw_shaft_diameter);
+        
+        // Screw head clearance (5.5mm diameter, from 4mm to top)
+        translate([0, 0, screw_head_start])
+            cylinder(h=attachment_height - screw_head_start + 0.1, d=screw_head_diameter);
+    }
+    
+    // Right side screw hole
+    translate([attachment_length/2 - rounding_diameter/2, 0, 0]) {
+        // Bottom stud hole (5mm diameter, 1.6mm deep)
+        cylinder(h=stud_hole_depth, d=stud_hole_diameter);
+        
+        // Screw shaft (2mm diameter, from 1.6mm to 4mm)
+        translate([0, 0, stud_hole_depth])
+            cylinder(h=screw_head_start - stud_hole_depth, d=screw_shaft_diameter);
+        
+        // Screw head clearance (5.5mm diameter, from 4mm to top)
+        translate([0, 0, screw_head_start])
+            cylinder(h=attachment_height - screw_head_start + 0.1, d=screw_head_diameter);
+    }
+    
+    // Arch cutout - rectangular cutout in the middle
+    // Centered between the screws (x=0), cuts across entire object
+    translate([-arch_cutout_width/2, -attachment_width/2, 0])
+        cube([arch_cutout_width, attachment_width, arch_cutout_depth]);
+
+    translate([arch_cutout_width/2, -keying_slot_y/2, 0])
+        cube([keying_slot_x, keying_slot_y, keying_slot_z]);
+}
+
