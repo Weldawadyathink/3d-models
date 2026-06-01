@@ -112,22 +112,18 @@ module raised_arch_body() {
     }
 }
 
-module inner_arch_chamfers() {
-    xz_extrude(attachment_width + 0.2) {
-        translate([-arch_cutout_width/2, carabiner_clearance_height])
-            polygon([
-                [0, 0],
-                [-inner_arch_chamfer, 0],
-                [0, -inner_arch_chamfer]
-            ]);
+module arch_cutout() {
+    chamfer = min(inner_arch_chamfer, arch_cutout_width/2, carabiner_clearance_height);
 
-        translate([arch_cutout_width/2, carabiner_clearance_height])
-            polygon([
-                [0, 0],
-                [inner_arch_chamfer, 0],
-                [0, -inner_arch_chamfer]
-            ]);
-    }
+    xz_extrude(attachment_width + 0.2)
+        polygon([
+            [-arch_cutout_width/2, 0],
+            [arch_cutout_width/2, 0],
+            [arch_cutout_width/2, carabiner_clearance_height - chamfer],
+            [arch_cutout_width/2 - chamfer, carabiner_clearance_height],
+            [-arch_cutout_width/2 + chamfer, carabiner_clearance_height],
+            [-arch_cutout_width/2, carabiner_clearance_height - chamfer]
+        ]);
 }
 
 module attachment_body() {
@@ -171,10 +167,7 @@ difference() {
     
     // Arch cutout - rectangular cutout in the middle
     // Centered between the screws (x=0), cuts across entire object
-    translate([-arch_cutout_width/2, -attachment_width/2, 0])
-        cube([arch_cutout_width, attachment_width, carabiner_clearance_height]);
-
-    inner_arch_chamfers();
+    arch_cutout();
 
     translate([arch_cutout_width/2, -keying_slot_y/2, 0])
         cube([keying_slot_x, keying_slot_y, keying_slot_z]);
