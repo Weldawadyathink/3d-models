@@ -10,7 +10,7 @@ VIEWS ?= iso front top right
 
 .PHONY: all help check-openscad list init lint dirs stls renders render clean
 
-all: lint dirs stls renders
+all: dirs lint stls renders
 
 help:
 	@printf '%s\n' \
@@ -49,7 +49,7 @@ init:
 	fi
 	@mkdir -p '$(NAME)'/models '$(NAME)'/renders '$(NAME)'/outputs
 
-lint:
+lint: dirs
 	@set -euo pipefail; \
 	bad_scad="$$(find . -path './.git' -prune -o -type f -name '*.scad' ! -path './*/models/*.scad' -print)"; \
 	if [ -n "$$bad_scad" ]; then \
