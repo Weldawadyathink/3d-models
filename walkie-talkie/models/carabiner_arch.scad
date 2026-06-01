@@ -151,20 +151,30 @@ module tpu_side_guides() {
     guide_y_inner = tpu_insert_width/2 + tpu_insert_y_clearance/2;
     guide_y_outer = attachment_width/2;
     guide_y_width = guide_y_outer - guide_y_inner;
-    guide_z_top = carabiner_clearance_height - inner_arch_chamfer;
-    guide_z_height = guide_z_top - tpu_insert_bottom_trim;
+    guide_y_center = (guide_y_inner + guide_y_outer)/2;
 
     for (x_side = [-1, 1], y_side = [-1, 1])
         translate([
-            x_side > 0 ? arch_cutout_width/2 - tpu_side_guide_x : -arch_cutout_width/2,
-            y_side > 0 ? guide_y_inner : -guide_y_outer,
-            tpu_insert_bottom_trim
+            0,
+            y_side*guide_y_center,
+            0
         ])
-            cube([
-                tpu_side_guide_x,
-                guide_y_width,
-                guide_z_height
-            ]);
+            xz_extrude(guide_y_width)
+                if (x_side > 0) {
+                    polygon([
+                        [arch_cutout_width/2 - tpu_side_guide_x, tpu_insert_bottom_trim],
+                        [arch_cutout_width/2, tpu_insert_bottom_trim],
+                        [arch_cutout_width/2, carabiner_clearance_height - inner_arch_chamfer],
+                        [arch_cutout_width/2 - tpu_side_guide_x, carabiner_clearance_height - inner_arch_chamfer + tpu_side_guide_x]
+                    ]);
+                } else {
+                    polygon([
+                        [-arch_cutout_width/2, tpu_insert_bottom_trim],
+                        [-arch_cutout_width/2 + tpu_side_guide_x, tpu_insert_bottom_trim],
+                        [-arch_cutout_width/2 + tpu_side_guide_x, carabiner_clearance_height - inner_arch_chamfer + tpu_side_guide_x],
+                        [-arch_cutout_width/2, carabiner_clearance_height - inner_arch_chamfer]
+                    ]);
+                }
 }
 
 difference() {
