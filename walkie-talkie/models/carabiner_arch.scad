@@ -21,9 +21,11 @@ screw_head_start = 2.5;         // Height where screw head starts (4mm from bott
 
 // Arch cutout dimensions
 arch_cutout_width = 15;      // Width of the arch cutout (X direction)
-carabiner_clearance_height = 10; // Height above Z=0 for the carabiner opening
+carabiner_clearance_height = 12; // Height above Z=0 for the carabiner opening
 arch_top_thickness = 3;      // Material thickness above the carabiner opening
 arch_shoulder_width = 3;     // Extra material on each side of the opening
+arch_ramp_width = 5;         // Width of each sloped shoulder above the base
+arch_profile_steps = 12;     // Smoothness of each curved shoulder
 
 // Keying slot dimensions
 keying_slot_y = 1.5;    // Width of the keying slot (Y direction, perpendicular to line)
@@ -52,21 +54,54 @@ module attachment_profile() {
     }
 }
 
+module xz_extrude(width) {
+    translate([0, width/2, 0])
+        rotate([90, 0, 0])
+            linear_extrude(height=width)
+                children();
+}
+
+module raised_arch_profile() {
+    arch_inner_half_width = arch_cutout_width/2 + arch_shoulder_width;
+    arch_outer_half_width = arch_inner_half_width + arch_ramp_width;
+    arch_top_height = carabiner_clearance_height + arch_top_thickness;
+    ramp_height = arch_top_height - attachment_height;
+
+    polygon(concat(
+        [[-arch_outer_half_width, attachment_height]],
+        [
+            for (i = [1:arch_profile_steps])
+                let (
+                    t = i/arch_profile_steps,
+                    eased = 3*t*t - 2*t*t*t
+                )
+                    [
+                        -arch_outer_half_width + arch_ramp_width*t,
+                        attachment_height + ramp_height*eased
+                    ]
+        ],
+        [[arch_inner_half_width, arch_top_height]],
+        [
+            for (i = [1:arch_profile_steps])
+                let (
+                    t = i/arch_profile_steps,
+                    eased = 3*t*t - 2*t*t*t
+                )
+                    [
+                        arch_inner_half_width + arch_ramp_width*t,
+                        arch_top_height - ramp_height*eased
+                    ]
+        ]
+    ));
+}
+
 module attachment_body() {
     linear_extrude(height=attachment_height)
         attachment_profile();
 
     // Raised bridge for carabiner clearance while keeping the screw pads low.
-    translate([
-        -(arch_cutout_width + 2*arch_shoulder_width)/2,
-        -attachment_width/2,
-        attachment_height
-    ])
-        cube([
-            arch_cutout_width + 2*arch_shoulder_width,
-            attachment_width,
-            carabiner_clearance_height + arch_top_thickness - attachment_height
-        ]);
+    xz_extrude(attachment_width)
+        raised_arch_profile();
 }
 
 difference() {
