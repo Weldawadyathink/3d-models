@@ -20,8 +20,10 @@ screw_head_diameter = 5.5;    // Screw head diameter (5.5mm)
 screw_head_start = 2.5;         // Height where screw head starts (4mm from bottom)
 
 // Arch cutout dimensions
-arch_cutout_width = 15;   // Width of the arch cutout (Y direction)
-arch_cutout_depth = 4;   // Depth of the arch cutout (Z direction, from bottom)
+arch_cutout_width = 15;      // Width of the arch cutout (X direction)
+carabiner_clearance_height = 10; // Height above Z=0 for the carabiner opening
+arch_top_thickness = 3;      // Material thickness above the carabiner opening
+arch_shoulder_width = 3;     // Extra material on each side of the opening
 
 // Keying slot dimensions
 keying_slot_y = 1.5;    // Width of the keying slot (Y direction, perpendicular to line)
@@ -50,10 +52,25 @@ module attachment_profile() {
     }
 }
 
-// Create a pill-shaped prism with flat top and bottom faces.
-difference() {
+module attachment_body() {
     linear_extrude(height=attachment_height)
         attachment_profile();
+
+    // Raised bridge for carabiner clearance while keeping the screw pads low.
+    translate([
+        -(arch_cutout_width + 2*arch_shoulder_width)/2,
+        -attachment_width/2,
+        attachment_height
+    ])
+        cube([
+            arch_cutout_width + 2*arch_shoulder_width,
+            attachment_width,
+            carabiner_clearance_height + arch_top_thickness - attachment_height
+        ]);
+}
+
+difference() {
+    attachment_body();
     
     // Left side screw hole
     translate([-attachment_length/2 + rounding_diameter/2, 0, 0]) {
@@ -86,7 +103,7 @@ difference() {
     // Arch cutout - rectangular cutout in the middle
     // Centered between the screws (x=0), cuts across entire object
     translate([-arch_cutout_width/2, -attachment_width/2, 0])
-        cube([arch_cutout_width, attachment_width, arch_cutout_depth]);
+        cube([arch_cutout_width, attachment_width, carabiner_clearance_height]);
 
     translate([arch_cutout_width/2, -keying_slot_y/2, 0])
         cube([keying_slot_x, keying_slot_y, keying_slot_z]);
