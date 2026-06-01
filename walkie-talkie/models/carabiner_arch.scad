@@ -27,6 +27,7 @@ arch_shoulder_width = 3;     // Extra material on each side of the opening
 arch_ramp_width = 5;         // Width of each sloped shoulder above the base
 arch_profile_steps = 12;     // Smoothness of each curved shoulder
 top_edge_chamfer = 0.8;      // Chamfer around the raised bridge top edge
+inner_arch_chamfer = 3;      // Chamfer on the upper inside corners of the opening
 arch_top_height = carabiner_clearance_height + arch_top_thickness;
 
 // Keying slot dimensions
@@ -111,6 +112,24 @@ module raised_arch_body() {
     }
 }
 
+module inner_arch_chamfers() {
+    xz_extrude(attachment_width + 0.2) {
+        translate([-arch_cutout_width/2, carabiner_clearance_height])
+            polygon([
+                [0, 0],
+                [-inner_arch_chamfer, 0],
+                [0, -inner_arch_chamfer]
+            ]);
+
+        translate([arch_cutout_width/2, carabiner_clearance_height])
+            polygon([
+                [0, 0],
+                [inner_arch_chamfer, 0],
+                [0, -inner_arch_chamfer]
+            ]);
+    }
+}
+
 module attachment_body() {
     linear_extrude(height=attachment_height)
         attachment_profile();
@@ -154,6 +173,8 @@ difference() {
     // Centered between the screws (x=0), cuts across entire object
     translate([-arch_cutout_width/2, -attachment_width/2, 0])
         cube([arch_cutout_width, attachment_width, carabiner_clearance_height]);
+
+    inner_arch_chamfers();
 
     translate([arch_cutout_width/2, -keying_slot_y/2, 0])
         cube([keying_slot_x, keying_slot_y, keying_slot_z]);
