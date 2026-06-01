@@ -30,6 +30,12 @@ top_edge_chamfer = 0.8;      // Chamfer around the raised bridge top edge
 inner_arch_chamfer = 3;      // Chamfer on the upper inside corners of the opening
 arch_top_height = carabiner_clearance_height + arch_top_thickness;
 
+// TPU insert side guide dimensions
+tpu_insert_width = 7;
+tpu_insert_y_clearance = 0.4;
+tpu_insert_bottom_trim = 3;
+tpu_side_guide_x = 1.2;
+
 // Keying slot dimensions
 keying_slot_y = 1.5;    // Width of the keying slot (Y direction, perpendicular to line)
 keying_slot_z = 2.5;    // Depth of the keying slot (Z direction)
@@ -134,8 +140,38 @@ module attachment_body() {
     raised_arch_body();
 }
 
+module cut_arch_opening() {
+    difference() {
+        attachment_body();
+        arch_cutout();
+    }
+}
+
+module tpu_side_guides() {
+    guide_y_inner = tpu_insert_width/2 + tpu_insert_y_clearance/2;
+    guide_y_outer = attachment_width/2;
+    guide_y_width = guide_y_outer - guide_y_inner;
+    guide_z_top = carabiner_clearance_height - inner_arch_chamfer;
+    guide_z_height = guide_z_top - tpu_insert_bottom_trim;
+
+    for (x_side = [-1, 1], y_side = [-1, 1])
+        translate([
+            x_side > 0 ? arch_cutout_width/2 - tpu_side_guide_x : -arch_cutout_width/2,
+            y_side > 0 ? guide_y_inner : -guide_y_outer,
+            tpu_insert_bottom_trim
+        ])
+            cube([
+                tpu_side_guide_x,
+                guide_y_width,
+                guide_z_height
+            ]);
+}
+
 difference() {
-    attachment_body();
+    union() {
+        cut_arch_opening();
+        tpu_side_guides();
+    }
     
     // Left side screw hole
     translate([-attachment_length/2 + rounding_diameter/2, 0, 0]) {
@@ -165,10 +201,6 @@ difference() {
             cylinder(h=arch_top_height - screw_head_start + 0.1, d=screw_head_diameter);
     }
     
-    // Arch cutout - rectangular cutout in the middle
-    // Centered between the screws (x=0), cuts across entire object
-    arch_cutout();
-
     translate([arch_cutout_width/2, -keying_slot_y/2, 0])
         cube([keying_slot_x, keying_slot_y, keying_slot_z]);
 }
