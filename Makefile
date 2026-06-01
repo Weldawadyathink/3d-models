@@ -5,6 +5,7 @@ OPENSCAD ?= $(shell if command -v openscad >/dev/null 2>&1; then command -v open
 IMG_SIZE ?= 1400,1000
 COLORSCHEME ?= Tomorrow
 VIEWS ?= iso front top right
+RENDER_JOBS ?= $(shell if command -v nproc >/dev/null 2>&1; then nproc; elif command -v sysctl >/dev/null 2>&1; then sysctl -n hw.ncpu; else printf '%s\n' 4; fi)
 
 .DEFAULT_GOAL := all
 
@@ -30,7 +31,8 @@ help:
 		'  OPENSCAD=/path/to/openscad' \
 		'  IMG_SIZE=1400,1000' \
 		'  COLORSCHEME=Tomorrow' \
-		'  VIEWS="iso front top right"'
+		'  VIEWS="iso front top right"' \
+		'  RENDER_JOBS=auto-detected CPU count'
 
 check-openscad:
 	@if [ -z "$(OPENSCAD)" ]; then \
@@ -95,7 +97,11 @@ stls: check-openscad dirs
 
 renders: check-openscad dirs
 	@set -euo pipefail; \
-	while IFS= read -r src; do \
+	if ! [[ '$(RENDER_JOBS)' =~ ^[1-9][0-9]*$$ ]]; then \
+		printf 'RENDER_JOBS must be a positive integer, got: %s\n' '$(RENDER_JOBS)' >&2; \
+		exit 1; \
+	fi; \
+	find . -mindepth 3 -maxdepth 3 -path './*/models/*.scad' -type f | sort | while IFS= read -r src; do \
 		group="$${src#./}"; group="$${group%%/models/*}"; \
 		name="$${src##*/}"; name="$${name%.scad}"; \
 		for view in $(VIEWS); do \
@@ -107,10 +113,14 @@ renders: check-openscad dirs
 				*) printf 'Unknown render view: %s\n' "$$view" >&2; exit 1 ;; \
 			esac; \
 			out="$$group/renders/$$name-$$view.png"; \
-			printf 'PNG    %s -> %s\n' "$${src#./}" "$$out"; \
-			'$(OPENSCAD)' -q -o "$$out" --imgsize '$(IMG_SIZE)' --colorscheme '$(COLORSCHEME)' --autocenter --viewall --camera "$$camera" "$$src"; \
+			printf '%s\0%s\0%s\0%s\0' "$$src" "$$out" "$$camera" "$${src#./}"; \
 		done; \
-	done < <(find . -mindepth 3 -maxdepth 3 -path './*/models/*.scad' -type f | sort)
+	done | OPENSCAD_BIN='$(OPENSCAD)' IMG_SIZE_VALUE='$(IMG_SIZE)' COLORSCHEME_VALUE='$(COLORSCHEME)' xargs -0 -n 4 -P '$(RENDER_JOBS)' /bin/bash -c '\
+		set -euo pipefail; \
+		src="$$1"; out="$$2"; camera="$$3"; label="$$4"; \
+		printf "PNG    %s -> %s\n" "$$label" "$$out"; \
+		"$$OPENSCAD_BIN" -q --render true -o "$$out" --imgsize "$$IMG_SIZE_VALUE" --colorscheme "$$COLORSCHEME_VALUE" --autocenter --viewall --camera "$$camera" "$$src"; \
+	' _
 
 render: renders
 
