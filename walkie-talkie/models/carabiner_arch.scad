@@ -26,6 +26,8 @@ arch_top_thickness = 3;      // Material thickness above the carabiner opening
 arch_shoulder_width = 3;     // Extra material on each side of the opening
 arch_ramp_width = 5;         // Width of each sloped shoulder above the base
 arch_profile_steps = 12;     // Smoothness of each curved shoulder
+top_edge_chamfer = 0.8;      // Chamfer around the raised bridge top edge
+arch_top_height = carabiner_clearance_height + arch_top_thickness;
 
 // Keying slot dimensions
 keying_slot_y = 1.5;    // Width of the keying slot (Y direction, perpendicular to line)
@@ -61,10 +63,9 @@ module xz_extrude(width) {
                 children();
 }
 
-module raised_arch_profile() {
+module raised_arch_profile(top_drop=0) {
     arch_inner_half_width = arch_cutout_width/2 + arch_shoulder_width;
     arch_outer_half_width = arch_inner_half_width + arch_ramp_width;
-    arch_top_height = carabiner_clearance_height + arch_top_thickness;
     ramp_height = arch_top_height - attachment_height;
 
     polygon(concat(
@@ -77,10 +78,10 @@ module raised_arch_profile() {
                 )
                     [
                         -arch_outer_half_width + arch_ramp_width*t,
-                        attachment_height + ramp_height*eased
+                        attachment_height + ramp_height*eased - top_drop*t
                     ]
         ],
-        [[arch_inner_half_width, arch_top_height]],
+        [[arch_inner_half_width, arch_top_height - top_drop]],
         [
             for (i = [1:arch_profile_steps])
                 let (
@@ -89,10 +90,25 @@ module raised_arch_profile() {
                 )
                     [
                         arch_inner_half_width + arch_ramp_width*t,
-                        arch_top_height - ramp_height*eased
+                        arch_top_height - ramp_height*eased - top_drop*(1 - t)
                     ]
         ]
     ));
+}
+
+module raised_arch_body() {
+    if (top_edge_chamfer > 0) {
+        hull() {
+            xz_extrude(attachment_width)
+                raised_arch_profile(top_drop=top_edge_chamfer);
+
+            xz_extrude(attachment_width - 2*top_edge_chamfer)
+                raised_arch_profile();
+        }
+    } else {
+        xz_extrude(attachment_width)
+            raised_arch_profile();
+    }
 }
 
 module attachment_body() {
@@ -100,8 +116,7 @@ module attachment_body() {
         attachment_profile();
 
     // Raised bridge for carabiner clearance while keeping the screw pads low.
-    xz_extrude(attachment_width)
-        raised_arch_profile();
+    raised_arch_body();
 }
 
 difference() {
@@ -118,7 +133,7 @@ difference() {
         
         // Screw head clearance (5.5mm diameter, from 4mm to top)
         translate([0, 0, screw_head_start])
-            cylinder(h=attachment_height - screw_head_start + 0.1, d=screw_head_diameter);
+            cylinder(h=arch_top_height - screw_head_start + 0.1, d=screw_head_diameter);
     }
     
     // Right side screw hole
@@ -132,7 +147,7 @@ difference() {
         
         // Screw head clearance (5.5mm diameter, from 4mm to top)
         translate([0, 0, screw_head_start])
-            cylinder(h=attachment_height - screw_head_start + 0.1, d=screw_head_diameter);
+            cylinder(h=arch_top_height - screw_head_start + 0.1, d=screw_head_diameter);
     }
     
     // Arch cutout - rectangular cutout in the middle
