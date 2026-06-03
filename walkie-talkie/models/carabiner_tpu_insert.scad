@@ -16,6 +16,7 @@ carabiner_cutout_top_width = 8;
 carabiner_cutout_stalk_width = 5;
 carabiner_cutout_mushroom_height = 4.5;
 carabiner_squeeze = 0.7;
+carabiner_cutout_z_offset = 2;
 
 $fn = 48;
 
@@ -45,7 +46,7 @@ module carabiner_cutout_profile() {
     cap_width = carabiner_cutout_top_width - carabiner_squeeze;
     stalk_width = carabiner_cutout_stalk_width - carabiner_squeeze;
     cap_height = carabiner_cutout_mushroom_height - carabiner_squeeze/2;
-    stalk_height = cutout_depth - cap_height;
+    stalk_height = cutout_depth - cap_height + carabiner_cutout_z_offset;
     z0 = bottom_trim - 0.01;
 
     union() {
