@@ -22,7 +22,7 @@ screw_head_start = 2.5;         // Height where screw head starts (4mm from bott
 // Arch cutout dimensions
 arch_cutout_width = 15;      // Width of the arch cutout (X direction)
 carabiner_clearance_height = 12; // Height above Z=0 for the carabiner opening
-arch_top_thickness = 3;      // Material thickness above the carabiner opening
+arch_top_thickness = 4;      // Material thickness above the carabiner opening
 arch_shoulder_width = 3;     // Extra material on each side of the opening
 arch_ramp_width = 5;         // Width of each sloped shoulder above the base
 arch_profile_steps = 12;     // Smoothness of each curved shoulder
