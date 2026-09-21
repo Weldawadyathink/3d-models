@@ -2,3 +2,8 @@
 
 */renders/*.png
 */outputs/*.stl
+*/outputs/*.step
+*/outputs/*.FCStd
+*/outputs/*.FCStd1
+*/outputs/*.json
+__pycache__/

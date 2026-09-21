@@ -2,6 +2,13 @@
 
 OpenSCAD model workspace for agents and humans.
 
+Native STEP models are also supported through `*/models/build_*.py` scripts.
+`make cad` runs them with `FREECAD_PYTHON` (the macOS FreeCAD bundled Python
+by default). They export CAD files, meshes and previews to their group's
+`outputs/` and `renders/` directories. See
+[the TWCS MINI model notes](twcs-throttle/models/README.md) for printing and
+rebuild instructions.
+
 ## Layout
 
 Each model group lives in its own top-level folder and contains only these

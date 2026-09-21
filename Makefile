@@ -6,12 +6,21 @@ IMG_SIZE ?= 1400,1000
 COLORSCHEME ?= Tomorrow
 VIEWS ?= iso front top right
 RENDER_JOBS ?= $(shell if command -v nproc >/dev/null 2>&1; then nproc; elif command -v sysctl >/dev/null 2>&1; then sysctl -n hw.ncpu; else printf '%s\n' 4; fi)
+FREECAD_PYTHON ?= /Applications/FreeCAD.app/Contents/Resources/bin/python
 
 .DEFAULT_GOAL := all
 
-.PHONY: all help check-openscad list init lint dirs stls renders render clean
+.PHONY: all help check-openscad list init lint dirs cad stls renders render clean
 
-all: dirs lint stls renders
+all: dirs lint cad stls renders
+
+# Native STEP models use FreeCAD's Python runtime; scripts also make their previews.
+cad: dirs
+	@set -euo pipefail; \
+	while IFS= read -r src; do \
+		printf 'CAD    %s\n' "$$src"; \
+		'$(FREECAD_PYTHON)' "$$src" --openscad '$(OPENSCAD)'; \
+	done < <(find . -mindepth 3 -maxdepth 3 -path './*/models/build_*.py' -type f | sort)
 
 help:
 	@printf '%s\n' \
@@ -22,6 +31,7 @@ help:
 		'  make stls         Export every */models/*.scad to */outputs/*.stl.' \
 		'  make renders      Render PNG views into each group renders directory.' \
 		'  make lint         Check project layout conventions.' \
+		'  make cad          Build native STEP models with FreeCAD Python.' \
 		'  make dirs         Create missing renders/outputs dirs for model groups.' \
 		'  make list         List discovered OpenSCAD source files.' \
 		'  make init NAME=x  Create x/models, x/renders, and x/outputs.' \
