@@ -2,7 +2,7 @@
 
 Run with FreeCAD's bundled Python (see `make cad`). Source axes: X is width,
 Y is slider travel, Z is height. The original STEP contains a shell AND a lid.
-Only the shell receives two equal-distance chamfers; the lid is unchanged.
+The shell receives two equal-distance chamfers; the lid has two M6 nut holders.
 """
 import argparse
 import json
@@ -20,6 +20,7 @@ import FreeCAD as App
 import Mesh
 import MeshPart
 import Part
+from mounting import mounted_plate
 
 HERE = Path(__file__).resolve().parent
 OUT = HERE.parent / "outputs"
@@ -165,11 +166,12 @@ def main():
     chamfer.Label = f"MINI shell - {args.chamfer:g} mm top end chamfers"
     chamfer.Base = source
     chamfer.Edges = [(i, args.chamfer, args.chamfer) for i in edges]
-    lid = doc.addObject("Part::Feature", "BottomPlate")
-    lid.Label = "Original bottom plate - unchanged"
-    lid.Shape = plate
+    original_lid = doc.addObject("Part::Feature", "OriginalBottomPlate")
+    original_lid.Label = "Original bottom plate (reference)"
+    original_lid.Shape = plate
     doc.recompute()
     source.Visibility = False
+    original_lid.Visibility = False
     # Use the direct OCC result for comparisons/export. The document feature
     # copies the imported shape; booleans between those copies can fail on this
     # STEP's thousands of nearly coplanar triangular faces. The direct operation
@@ -194,13 +196,26 @@ def main():
     roof_clearance = min(f.distToShape(inner_roof)[0] for f in bevels)
     assert roof_clearance > 2.1
 
+    original_plate = plate
+    plate, coupon, mount_report = mounted_plate(original_plate, result)
+    lid = doc.addObject("Part::Feature", "BottomPlate")
+    lid.Label = "Bottom plate - two diagonal captive M6 nuts"
+    lid.Shape = plate
+    lid.addProperty("App::PropertyString", "RebuildInstructions", "Mounting")
+    lid.RebuildInstructions = "Edit models/mounting.py and run make cad to regenerate this feature."
+    lid.addProperty("App::PropertyString", "MountingDetails", "Mounting")
+    lid.MountingDetails = json.dumps(mount_report)
+    doc.recompute()
     print_body = print_orientation(result)
     print_plate = print_orientation(plate)
-    for shape in [print_body, print_plate]:
+    print_coupon = print_orientation(coupon)
+    for shape in [print_body, print_plate, print_coupon]:
         assert shape.isValid() and all(d < 180 for d in dimensions(shape))
     facets = {}
     for shape, name in [(result, "twcs-mini-shell"), (plate, "twcs-bottom-plate"),
-                        (print_body, "twcs-mini-shell-print"), (print_plate, "twcs-bottom-plate-print")]:
+                        (print_body, "twcs-mini-shell-print"), (print_plate, "twcs-bottom-plate-print"),
+                        (coupon, "twcs-m6-nut-fit-test"),
+                        (print_coupon, "twcs-m6-nut-fit-test-print")]:
         shape.exportStep(str(OUT / (name + ".step")))
         facets[name] = export_mesh(shape, name)
     Part.makeCompound([result, plate]).exportStep(str(OUT / "twcs-mini-assembly.step"))
@@ -216,7 +231,9 @@ def main():
         "volume_added_mm3": added_volume,
         "protected_region_volume_removed_mm3": protected_removed,
         "minimum_bevel_to_inner_roof_distance_mm": roof_clearance,
-        "plate_unchanged": True,
+        "plate_unchanged": False,
+        "mounting": mount_report,
+        "nut_fit_test_print_dimensions_mm": dimensions(print_coupon),
         "brep_valid": True,
         "stl_closed_single_component_manifold": True,
         "mesh_facets": facets,
@@ -230,7 +247,12 @@ def main():
         render(args.openscad, "twcs-mini-shell-inside", shell_import, "0,0,0,235,0,30,500")
         render(args.openscad, "twcs-mini-shell-side", shell_import, "0,0,0,90,0,90,500")
         lid_import = 'import(' + json.dumps(str(OUT / "twcs-bottom-plate.stl")) + ');'
-        render(args.openscad, "twcs-bottom-plate", lid_import, "0,0,0,235,0,30,500")
+        render(args.openscad, "twcs-bottom-plate", lid_import, "0,0,0,55,0,120,500")
+        render(args.openscad, "twcs-bottom-plate-underside", lid_import, "0,0,0,235,0,30,500")
+        render(args.openscad, "twcs-bottom-plate-top", lid_import, "0,0,0,0,0,0,500")
+        # A single holder enlarged, still in assembly orientation for clarity.
+        coupon_import = 'import(' + json.dumps(str(OUT / "twcs-m6-nut-fit-test.stl")) + ');'
+        render(args.openscad, "twcs-m6-nut-holder-detail", coupon_import, "0,0,0,65,0,120,100")
         original_print = print_orientation(body)
         # Match the original to the modified shell's centering translation so
         # overlaid edges share the same physical coordinates.

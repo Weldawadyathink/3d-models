@@ -5,5 +5,6 @@
 */outputs/*.step
 */outputs/*.FCStd
 */outputs/*.FCStd1
+*/outputs/*.FCBak
 */outputs/*.json
 __pycache__/
