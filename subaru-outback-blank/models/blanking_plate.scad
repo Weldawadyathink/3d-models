@@ -15,18 +15,18 @@ total_depth = 15; // Includes face thickness.
 /* [Fit and appearance] */
 clearance_per_side = 0.20;
 face_thickness = 2.4;
-flange_corner_radius = 3;
-face_edge_bevel = 0.6;
+flange_corner_radius = 4;
+face_edge_radius = 0.9;
 body_corner_radius = 1.5;
-wall_thickness = 1.6;
+wall_thickness = 2.0;
 
 /* [Clips - physical fit still needs testing] */
 // Added to measured panel thickness so all four shoulders can clear the lip.
-retention_clearance = 0.2;
+retention_clearance = 0.2; // Original seating allowance restored after fit testing.
 tab_width = 8;
 tab_spacing = 24; // Center-to-center; leaves solid wall beside the keyed corner.
-tab_thickness = 1.2;
-tab_projection = 1.0; // Extends beyond sleeve: 0.8 mm overlap past opening.
+tab_thickness = 1.4;
+tab_projection = 1.3; // Extends beyond sleeve: 1.1 mm overlap past opening.
 tab_ramp_length = 3.5;
 tab_slot = 0.7;
 tab_root_depth = 2;
@@ -48,9 +48,9 @@ shoulder_z = face_thickness + panel_gap;
 assert(clearance_per_side >= 0);
 assert(panel_thickness > 0 && retention_clearance >= 0);
 assert(key_diagonal > 0 && key_inset < min(opening_width, opening_height));
-assert(face_thickness > face_edge_bevel && face_edge_bevel >= 0);
+assert(face_thickness > face_edge_radius && face_edge_radius > 0);
 assert(flange_width > body_width && flange_height > body_height);
-assert(flange_corner_radius > face_edge_bevel);
+assert(flange_corner_radius > face_edge_radius);
 assert(2 * flange_corner_radius < min(flange_width, flange_height));
 assert(body_corner_radius > 0 && 2 * body_corner_radius < body_height);
 assert(wall_thickness > 0 && 2 * wall_thickness < body_height);
@@ -98,14 +98,20 @@ module sleeve_outline() {
 }
 
 module face() {
-    // Small cosmetic bevel; maximum flange dimensions are unchanged.
+    // Quarter-circle roundover on the cosmetic perimeter, sampled every 7.5
+    // degrees. The full flange outline and flat mounting surface are retained.
     hull() {
-        linear_extrude(height = eps)
-            rounded_rectangle(flange_width - 2*face_edge_bevel,
-                              flange_height - 2*face_edge_bevel,
-                              flange_corner_radius - face_edge_bevel);
-        translate([0, 0, face_edge_bevel])
-            linear_extrude(height = face_thickness - face_edge_bevel)
+        for (angle = [0:7.5:90]) {
+            inset = face_edge_radius * (1 - cos(angle));
+            z = face_edge_radius * (1 - sin(angle));
+            translate([0, 0, z])
+                linear_extrude(height = eps)
+                    rounded_rectangle(flange_width - 2*inset,
+                                      flange_height - 2*inset,
+                                      flange_corner_radius - inset);
+        }
+        translate([0, 0, face_edge_radius])
+            linear_extrude(height = face_thickness - face_edge_radius)
                 rounded_rectangle(flange_width, flange_height, flange_corner_radius);
     }
 }
